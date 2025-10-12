@@ -1,0 +1,3 @@
+[submodule "libs/Python_Arabov"]
+	path = libs/Python_Arabov
+	url = https://github.com/prdcsi/Python_Arabov.git
