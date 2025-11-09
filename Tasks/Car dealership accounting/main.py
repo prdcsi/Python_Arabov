@@ -1,9 +1,9 @@
+# main.py
 import logging
+import os
 from car_factory import CarFactory
-from customer import Customer
 from dealership import Dealership
-from handlers import SalesManager, FinanceDepartment, Director
-from sale import OnlineSaleProcess
+from exceptions import InvalidCarError
 
 # Настройка логирования
 logging.basicConfig(
@@ -19,42 +19,94 @@ def main():
     dealership = Dealership("Автоцентр 'Премиум'")
     dealership.load_from_file()
 
-    # Создание автомобилей
-    sedan = CarFactory.create_car("sedan", car_id="C001", make="Toyota", model="Camry", year=2023, price=25000, fuel_efficiency=6.5)
-    suv = CarFactory.create_car("suv", car_id="C002", make="Ford", model="Explorer", year=2024, price=40000, towing_capacity=2500)
-    ev = CarFactory.create_car("electric", car_id="C003", make="Tesla", model="Model 3", year=2025, price=45000, battery_range=500)
+    print("🚗 Добро пожаловать в систему управления автосалоном!")
+    while True:
+        print("\n=== Меню ===")
+        print("1. Добавить автомобиль")
+        print("2. Показать все автомобили")
+        print("3. Найти автомобили по марке")
+        print("4. Удалить автомобиль")
+        print("5. Изменить цену автомобиля")
+        print("6. Продать автомобиль")
+        print("7. Сохранить данные")
+        print("0. Выйти")
 
-    dealership.add_car(sedan)
-    dealership.add_car(suv)
-    dealership.add_car(ev)
+        choice = input("\nВыберите действие: ").strip()
 
-    # Создание клиента
-    customer = Customer("CU001", "Иван Петров", "+79991234567")
+        try:
+            if choice == "1":
+                print("\nТипы: sedan, suv, electric")
+                car_type = input("Тип автомобиля: ").strip().lower()
+                car_id = input("ID автомобиля: ").strip()
+                make = input("Марка: ").strip()
+                model = input("Модель: ").strip()
+                year = int(input("Год выпуска: "))
+                price = float(input("Цена: "))
 
-    # Продажа
-    sale_process = OnlineSaleProcess()
-    sale = sale_process.sell_car(sedan, customer)
-    dealership.sales.append(sale)
+                if car_type == "sedan":
+                    fuel = float(input("Расход топлива (л/100км): "))
+                    car = CarFactory.create_car(car_type, car_id=car_id, make=make, model=model, year=year, price=price, fuel_efficiency=fuel)
+                elif car_type == "suv":
+                    tow = float(input("Грузоподъемность (кг): "))
+                    car = CarFactory.create_car(car_type, car_id=car_id, make=make, model=model, year=year, price=price, towing_capacity=tow)
+                elif car_type == "electric":
+                    rng = float(input("Запас хода (км): "))
+                    car = CarFactory.create_car(car_type, car_id=car_id, make=make, model=model, year=year, price=price, battery_range=rng)
+                else:
+                    print("❌ Неизвестный тип.")
+                    continue
 
-    # Поиск
-    print("\n=== Все автомобили ===")
-    for car in dealership.get_all_cars():
-        print(car)
+                dealership.add_car(car)
 
-    print("\n=== Поиск по марке 'Toyota' ===")
-    for car in dealership.search_by_make("Toyota"):
-        print(car)
+            elif choice == "2":
+                cars = dealership.get_all_cars()
+                if not cars:
+                    print("📭 Нет доступных автомобилей.")
+                else:
+                    for car in cars:
+                        print(f"  • {car} → Цена: {car.calculate_price():,.0f} руб.")
 
-    # Изменение цены через цепочку
-    chain = SalesManager(FinanceDepartment(Director()))
-    try:
-        dealership.change_car_price("C002", 38000, user_role="manager", handler=chain)
-        print(f"Новая цена Ford Explorer: {suv.price}")
-    except Exception as e:
-        print(f"Ошибка: {e}")
+            elif choice == "3":
+                make = input("Введите марку: ").strip()
+                cars = dealership.search_by_make(make)
+                if not cars:
+                    print(f"📭 Нет автомобилей марки {make}.")
+                else:
+                    for car in cars:
+                        print(f"  • {car}")
 
-    # Сохранение
-    dealership.save_to_file()
+            elif choice == "4":
+                car_id = input("ID автомобиля для удаления: ").strip()
+                dealership.remove_car(car_id)
+
+            elif choice == "5":
+                car_id = input("ID автомобиля: ").strip()
+                new_price = float(input("Новая цена: "))
+                dealership.edit_car_price(car_id, new_price)
+
+            elif choice == "6":
+                car_id = input("ID автомобиля: ").strip()
+                name = input("Имя клиента: ").strip()
+                phone = input("Телефон клиента: ").strip()
+                dealership.sell_car(car_id, name, phone)
+
+            elif choice == "7":
+                dealership.save_to_file()
+
+            elif choice == "0":
+                dealership.save_to_file()
+                print("🚪 До свидания!")
+                break
+
+            else:
+                print("❌ Неверный выбор.")
+
+        except ValueError as e:
+            print(f"❌ Ошибка ввода: {e}")
+        except InvalidCarError as e:
+            print(f"❌ Ошибка автомобиля: {e}")
+        except Exception as e:
+            print(f"❌ Неизвестная ошибка: {e}")
 
 if __name__ == "__main__":
     main()

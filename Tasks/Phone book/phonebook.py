@@ -111,7 +111,7 @@ def import_from_json(filename: str = "contacts.json"):
     added = 0
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
-        for item in
+        for item in data:
             name = item.get("name")
             phone = item.get("phone")
             email = item.get("email")

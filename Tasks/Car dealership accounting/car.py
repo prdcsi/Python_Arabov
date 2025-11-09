@@ -1,15 +1,17 @@
-from abc import ABC, abstractmethod
-from typing import Any
+from abc import ABC, ABCMeta, abstractmethod
 from exceptions import InvalidCarError
 
-class CarMeta(type):
-    registry = {}
+# Глобальный реестр — вынесем его ВНЕ метакласса для ясности
+CAR_REGISTRY = {}
 
-    def __new__(cls, name, bases, attrs):
-        new_cls = super().__new__(cls, name, bases, attrs)
-        if name != "Car":
-            cls.registry[name.lower()] = new_cls
-        return new_cls
+class CarMeta(ABCMeta):
+    def __new__(mcs, name, bases, namespace, **kwargs):
+        cls = super().__new__(mcs, name, bases, namespace)
+        # Регистрируем ВСЕ подклассы Car, кроме самого Car
+        if name != "Car" and any(base.__name__ == "Car" for base in bases):
+            CAR_REGISTRY[name.lower()] = cls
+            print(f"[DEBUG] Зарегистрирован тип автомобиля: {name.lower()} → {cls}")
+        return cls
 
 
 class Car(ABC, metaclass=CarMeta):
@@ -93,9 +95,9 @@ class Car(ABC, metaclass=CarMeta):
         }
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls,  dict):
         car_type = data.pop("type")
-        car_class = CarMeta.registry[car_type.lower()]
+        car_class = CAR_REGISTRY[car_type.lower()]
         return car_class(**data)
 
 
@@ -109,7 +111,7 @@ class Sedan(Car):
         return self._fuel_efficiency
 
     def calculate_price(self) -> float:
-        return self.price * 0.95  # скидка 5%
+        return self.price * 0.95
 
     def __str__(self) -> str:
         return f"Седан: {self.make} {self.model}, Расход топлива: {self.fuel_efficiency} л/100км"
@@ -125,7 +127,7 @@ class SUV(Car):
         return self._towing_capacity
 
     def calculate_price(self) -> float:
-        return self.price * 1.1  # наценка 10%
+        return self.price * 1.1
 
     def __str__(self) -> str:
         return f"SUV: {self.make} {self.model}, Грузоподъемность: {self.towing_capacity} кг"
@@ -141,7 +143,7 @@ class ElectricCar(Car):
         return self._battery_range
 
     def calculate_price(self) -> float:
-        return self.price * 0.9  # скидка 10%
+        return self.price * 0.9
 
     def __str__(self) -> str:
         return f"Электромобиль: {self.make} {self.model}, Запас хода: {self.battery_range} км"
